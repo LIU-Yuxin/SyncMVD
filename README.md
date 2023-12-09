@@ -11,7 +11,7 @@ Authors: Yuxin Liu, Minshan Xie, Hanyuan Liu, Tien-Tsin Wong
 <img src=assets/teaser.jpg width=768>
 
 **SyncMVD** can generate texture for a 3D object from a text prompt using a **Sync**hronized **M**ulti-**V**iew **D**iffusion approach.
-The method shares the denoised content among different views in each denoising step to ensure texture consistency and avoid seams and fragmentation.
+The method shares the denoised content among different views in each denoising step to ensure texture consistency and avoid seams and fragmentation (fig a).
 
 
 
