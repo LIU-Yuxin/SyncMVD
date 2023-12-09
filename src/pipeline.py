@@ -172,6 +172,7 @@ class StableControlNetMVDPipeline(StableDiffusionControlNetPipeline):
 			self,
 			mesh_path=None,
 			mesh_transform=None,
+			mesh_autouv=None,
 			camera_azims=None,
 			camera_centers=None,
 			top_cameras=True,
@@ -239,9 +240,9 @@ class StableControlNetMVDPipeline(StableDiffusionControlNetPipeline):
 		# uvp is for latent and uvp_rgb for rgb color
 		self.uvp = UVP(texture_size=texture_size, render_size=latent_size, sampling_mode="nearest", channels=4, device=self._execution_device)
 		if mesh_path.lower().endswith(".obj"):
-			self.uvp.load_mesh(mesh_path, scale_factor=mesh_transform["scale"] or 1)
+			self.uvp.load_mesh(mesh_path, scale_factor=mesh_transform["scale"] or 1, autouv=mesh_autouv)
 		elif mesh_path.lower().endswith(".glb"):
-			self.uvp.load_glb_mesh(mesh_path, scale_factor=mesh_transform["scale"] or 1)
+			self.uvp.load_glb_mesh(mesh_path, scale_factor=mesh_transform["scale"] or 1, autouv=mesh_autouv)
 		else:
 			assert False, "The mesh file format is not supported. Use .obj or .glb."
 		self.uvp.set_cameras_and_render_settings(self.camera_poses, centers=camera_centers, camera_distance=4.0)
@@ -308,6 +309,7 @@ class StableControlNetMVDPipeline(StableDiffusionControlNetPipeline):
 
 		mesh_path: str = None,
 		mesh_transform: dict = None,
+		mesh_autouv = False,
 		camera_azims=None,
 		camera_centers=None,
 		top_cameras=True,
@@ -331,6 +333,7 @@ class StableControlNetMVDPipeline(StableDiffusionControlNetPipeline):
 		self.initialize_pipeline(
 				mesh_path=mesh_path,
 				mesh_transform=mesh_transform,
+				mesh_autouv=mesh_autouv,
 				camera_azims=camera_azims,
 				camera_centers=camera_centers,
 				top_cameras=top_cameras,

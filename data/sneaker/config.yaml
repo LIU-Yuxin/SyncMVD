@@ -1,7 +1,7 @@
-mesh: "./glove.obj"
+mesh: "./sneaker.glb"
 mesh_config_relative: True    # mesh is placed relative to the config file
 use_mesh_name: False
-prompt: "A photo of a camouflage military tactical glove."
+prompt: "A photo of a camouflage military boot."
 steps: 30
 cond_type: "depth"
 seed: 1
