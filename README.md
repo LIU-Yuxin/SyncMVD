@@ -12,7 +12,7 @@ Authors: Yuxin LIU, Minshan Xie, Hanyuan LIU, Tien-Tsin Wong
 **Sync MV-Diff** can generate texture for a 3D object from a text prompt using a synchronized multi-view diffusion approach.
 The method shares the denoised content among different views in each denoising step to ensure texture consistency and avoid seams and fragmentation.
 
-<table class="center">
+<table>
   <tr>
   <td>
     <img src=assets/showcase/guitar0.jpeg_00.png width="170">
