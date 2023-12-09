@@ -107,14 +107,16 @@ The current program based on [PyTorch3D](https://github.com/facebookresearch/pyt
 To avoid unexpected artifact, the object being textured should avoid flipped face normals and overlapping UV, and keep the number of triangle faces within around 40,000. You can try [Blender](https://www.blender.org/) for manual mesh cleaning and processing, or its python scripting for automation.
 
 You can try out the method with the following pre-processed meshs and configs:
-- [Face - "Portrait photo of Kratos, god of war."](/data/face/config.yaml) (by [2on](https://sketchfab.com/3d-models/face-ffde29cb64584cf1a939ac2b58d0a931))
-- [Glove - ]() (by [alixor22](https://sketchfab.com/3d-models/military-glove-d1a4dee1c8594dfea92f8afe35692c13))
+- [Face - "Portrait photo of Kratos, god of war."](data/face/config.yaml) (by [2on](https://sketchfab.com/3d-models/face-ffde29cb64584cf1a939ac2b58d0a931))
+- [Sneaker - "A photo of a camouflage military boot."](data/sneaker/config.yaml) (by [gianpego](https://sketchfab.com/3d-models/air-jordan-1-1985-2614cef9a3724ec5852144446fbb726f))
 
 ## Inference
 ```bash
 python run_experiment.py --config {your config}.yaml
 ```
 Refer to [config.py](src/configs.py) for the list of arguments and settings you can adjust. You can change these settings by including them in a `.yaml` config file or passing the related arguments in command line; values specified in command line will overwrite those in config files.
+
+When no output path is specified, the generated result will be placed in the same folder as the config file by default.
 
 ## License
 The program lisenced under [MIT License](LICENSE).

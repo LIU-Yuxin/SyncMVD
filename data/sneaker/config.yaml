@@ -5,5 +5,5 @@ use_mesh_name: False
 prompt: "A photo of a camouflage military boot."
 steps: 30
 cond_type: "depth"
-seed: 1
+seed: 2
 mesh_scale: 1
