@@ -9,46 +9,71 @@ Authors: Yuxin LIU, Minshan Xie, Hanyuan LIU, Tien-Tsin Wong
 **SyncMVD** can generate texture for a 3D object from a text prompt using a **Sync**hronized **M**ulti-**V**iew **D**iffusion approach.
 The method shares the denoised content among different views in each denoising step to ensure texture consistency and avoid seams and fragmentation.
 
-<table>
+<table style="table-layout: fixed; width: 100%;">
+        <col style="width: 25%;">
+        <col style="width: 25%;">
+        <col style="width: 25%;">
+        <col style="width: 25%;">
   <tr>
   <td>
-    <img src=assets/showcase/guitar0.jpeg_00.png width="170">
+    <img src=assets/bird.gif width="192">
   </td>
   <td>
-    <img src=assets/showcase/guitar0.gif width="170">
+    <img src=assets/david.gif width="192">
   </td>
   <td>
-    <img src=assets/showcase/walk0.png_00.png width="170">
+    <img src=assets/dog.gif width="192">
   </td>
   <td>
-    <img src=assets/showcase/walk0.gif width="170">
+    <img src=assets/doll.gif width="192">
   </td>
   </tr>
-  <tr>
-    <td>"bear playing guitar happily, snowing"</td>
-    <td>"boy walking on the street"</td>
-    <td>"bear playing guitar happily, snowing"</td>
-    <td>"boy walking on the street"</td>
+  <tr style="vertical-align: text-top;">
+    <td style="font-family:courier">"Photo of a beautiful magpie."</td>
+    <td style="font-family:courier">"Publicity photo of a 60s movie, full color."</td>
+    <td style="font-family:courier">"A cute shiba inu dog."</td>
+    <td style="font-family:courier">"A cute Hatsune Miku plush doll, wearing beautiful dress."</td>
   </tr>
-  <tr>
+   <tr>
   <td>
-    <img src=assets/showcase/guitar0.jpeg_00.png width="170">
+    <img src=assets/gloves.gif width="192" >
   </td>
   <td>
-    <img src=assets/showcase/guitar0.gif width="170">
+    <img src=assets/hamburger.gif width="192" >
   </td>
   <td>
-    <img src=assets/showcase/walk0.png_00.png width="170">
+    <img src=assets/house.gif width="192" >
   </td>
   <td>
-    <img src=assets/showcase/walk0.gif width="170">
+    <img src=assets/luckycat.gif width="192">
   </td>
   </tr>
+  <tr style="vertical-align: text-top;">
+    <td style="font-family:courier">"A photo of a robot hand with mechanical joints."</td>
+    <td style="font-family:courier">"Photo of a hamburger."</td>
+    <td style="font-family:courier">"Photo of a lowpoly fantasy house from warcraft game, lawn."</td>
+    <td style="font-family:courier">"Blue and white pottery style lucky cat with intricate patterns."</td>
+  </tr>
+
   <tr>
-    <td>"bear playing guitar happily, snowing"</td>
-    <td>"boy walking on the street"</td>
-    <td>"bear playing guitar happily, snowing"</td>
-    <td>"boy walking on the street"</td>
+  <td>
+    <img src=assets/mask.gif width="192" >
+  </td>
+  <td>
+    <img src=assets/Moai.gif width="192" >
+  </td>
+  <td>
+    <img src=assets/sneakers.gif width="192">
+  </td>
+  <td>
+    <img src=assets/teddybear.gif width="192">
+  </td>
+  </tr>
+  <tr style="vertical-align: text-top;">
+    <td style="font-family:courier">"A Japanese demon mask."</td>
+    <td style="font-family:courier">"Photo of James Harden."</td>
+    <td style="font-family:courier">"A photo of a gray and black Nike Airforce high top sneakers."</td>
+    <td style="font-family:courier">"Teddy bear wearing superman costume."</td>
   </tr>
 </table>
 
