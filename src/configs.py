@@ -39,6 +39,7 @@ def parse_config():
     parser.add_argument('--shuffle_bg_change', type=float, default=0.4, help='Use only black and white background after certain timestep')
     parser.add_argument('--shuffle_bg_end', type=float, default=0.8, help='Don\'t shuffle background after certain timestep. background color may bleed onto object')
     parser.add_argument('--mesh_scale', type=float, default=1.0, help='Set above 1 to enlarge object in camera views')
+    parser.add_argument('--mesh_autouv', action='store_true', help='Use Xatlas to unwrap UV automatically')
     # Logging Config
     parser.add_argument('--log_interval', type=int, default=10)
     parser.add_argument('--view_fast_preview', action='store_false')

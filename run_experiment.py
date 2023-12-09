@@ -90,6 +90,7 @@ result_tex_rgb, textured_views, v =mvd(
 
 	mesh_path=mesh_path,
 	mesh_transform={"scale":opt.mesh_scale},
+	mesh_autouv=opt.mesh_autouv,
 
 	camera_azims=opt.camera_azims,
 	top_cameras=opt.top_cameras,
