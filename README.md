@@ -53,6 +53,7 @@ The method shares the denoised content among different views in each denoising s
     <td>"bear playing guitar happily, snowing"</td>
     <td>"boy walking on the street"</td>
   </tr>
+</table>
 
 ## Installation
 First clone the repository and install the basic dependencies
