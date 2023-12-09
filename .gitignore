@@ -1,2 +1,4 @@
 */__pycache__/
 *.pyc
+/assets/*.py
+/assets/*.mp4
