@@ -55,15 +55,20 @@ The method shares the denoised content among different views in each denoising s
 ## Installation
 First clone the repository and install the basic dependencies
 ```bash
-git clone https://github.com/username/project.git
-cd project
+git clone https://github.com/LIU-Yuxin/SyncMVD.git
+cd SyncMVD
+conda create -n syncmvd python=3.8
+conda activate syncmvd
 pip install -r requirements.txt
 ```
-Then install PyTorch3D (0.7.3 version)
+Then install PyTorch3D through the following link (change the respective Python, Cuda and PyTorch version in the link for binary for your setup), or install according to official [installation guide](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
 ```bash
-pip install "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.3"
+pip install https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py38_cu117_pyt200/download.html
 ```
-The pretrained models including [`stabilityai/stable-diffusion-2-depth`]( https://huggingface.co/stabilityai/stable-diffusion-2-depth), [`stabilityai/stable-diffusion-2-depth`]( https://huggingface.co/stabilityai/stable-diffusion-2-depth) and [`stabilityai/stable-diffusion-2-depth`]( https://huggingface.co/stabilityai/stable-diffusion-2-depth) will be downloaded automatically on demand.
+The pretrained models will be downloaded automatically on demand, including:
+- [`runwayml/stable-diffusion-v1-5`](https://huggingface.co/runwayml/stable-diffusion-v1-5)
+- [`lllyasviel/control_v11f1p_sd15_depth`](lllyasviel/control_v11f1p_sd15_depth)
+- [`lllyasviel/control_v11p_sd15_normalbae`](https://huggingface.co/lllyasviel/control_v11p_sd15_normalbae) 
 
 ## Data
 The current program based on [PyTorch3D](https://github.com/facebookresearch/pytorch3d) library requires a input `.obj` mesh with `.mtl` material and related textures to read the original UV mapping of the object, which may require manual cleaning. Alternatively the program also support auto unwarping based on [XAtlas](https://github.com/jpcy/xatlas) to load mesh that does not met the above requirements. The program also supports loading `.glb` mesh, but it may not be stable as its a PyTorch3D experiment feature.
