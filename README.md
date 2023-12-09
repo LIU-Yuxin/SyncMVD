@@ -16,16 +16,16 @@ The method shares the denoised content among different views in each denoising s
         <col style="width: 25%;">
   <tr>
   <td>
-    <img src=assets/bird.gif width="192">
+    <img src=assets/bird.gif width="170">
   </td>
   <td>
-    <img src=assets/david.gif width="192">
+    <img src=assets/david.gif width="170">
   </td>
   <td>
-    <img src=assets/dog.gif width="192">
+    <img src=assets/dog.gif width="170">
   </td>
   <td>
-    <img src=assets/doll.gif width="192">
+    <img src=assets/doll.gif width="170">
   </td>
   </tr>
   <tr style="vertical-align: text-top;">
@@ -36,16 +36,16 @@ The method shares the denoised content among different views in each denoising s
   </tr>
    <tr>
   <td>
-    <img src=assets/gloves.gif width="192" >
+    <img src=assets/gloves.gif width="170" >
   </td>
   <td>
-    <img src=assets/hamburger.gif width="192" >
+    <img src=assets/hamburger.gif width="170" >
   </td>
   <td>
-    <img src=assets/house.gif width="192" >
+    <img src=assets/house.gif width="170" >
   </td>
   <td>
-    <img src=assets/luckycat.gif width="192">
+    <img src=assets/luckycat.gif width="170">
   </td>
   </tr>
   <tr style="vertical-align: text-top;">
@@ -57,16 +57,16 @@ The method shares the denoised content among different views in each denoising s
 
   <tr>
   <td>
-    <img src=assets/mask.gif width="192" >
+    <img src=assets/mask.gif width="170" >
   </td>
   <td>
-    <img src=assets/Moai.gif width="192" >
+    <img src=assets/Moai.gif width="170" >
   </td>
   <td>
-    <img src=assets/sneakers.gif width="192">
+    <img src=assets/sneakers.gif width="170">
   </td>
   <td>
-    <img src=assets/teddybear.gif width="192">
+    <img src=assets/teddybear.gif width="170">
   </td>
   </tr>
   <tr style="vertical-align: text-top;">
