@@ -7,6 +7,7 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 from diffusers import DDPMScheduler, UniPCMultistepScheduler
 from src.pipeline import StableControlNetMVDPipeline
 from src.configs import *
+from shutil import copy
 
 
 opt = parse_config()
