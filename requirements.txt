@@ -1,0 +1,10 @@
+torch>=2.0.0
+torchvision
+diffusers==0.19.3
+transformers==4.28.1
+xformer
+xatlas
+pytorch3d==0.7.3
+cupy=12.2.0
+configargparse
+ipython
