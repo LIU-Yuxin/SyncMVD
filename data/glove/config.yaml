@@ -1,0 +1,8 @@
+mesh: "./glove.obj"
+mesh_config_relative: True    # mesh is placed relative to the config file
+use_mesh_name: False
+prompt: "A photo of a red an black work glove."
+steps: 30
+cond_type: "depth"
+seed: 1
+mesh_scale: 1

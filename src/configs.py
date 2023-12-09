@@ -8,7 +8,7 @@ def parse_config():
     # File Config
     parser.add_argument('--config', type=str, required=True, is_config_file=True)
     parser.add_argument('--mesh', type=str, required=True)
-    parser.add_argument('--mesh_config_relative', action='store_true')
+    parser.add_argument('--mesh_config_relative', action='store_true', help="Search mesh file relative to the config path instead of current working directory")
     parser.add_argument('--output', type=str, default=None, help="If not provided, use the parent directory of config file for output")
     parser.add_argument('--prefix', type=str, default='MVD')
     parser.add_argument('--use_mesh_name', action='store_true')
