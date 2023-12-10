@@ -84,7 +84,9 @@ The method shares the denoised content among different views in each denoising s
 </table>
 
 ## Installation :wrench:
-First clone the repository and install the basic dependencies
+The program is developed and tested on Linux system with Nvidia GPU. If you find compatibility issues on Windows platform, you can also consider using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+To install, first clone the repository and install the basic dependencies
 ```bash
 git clone https://github.com/LIU-Yuxin/SyncMVD.git
 cd SyncMVD
