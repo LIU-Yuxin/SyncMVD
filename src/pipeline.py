@@ -37,9 +37,9 @@ from transformers import CLIPImageProcessor, CLIPTextModel, CLIPTokenizer
 from .renderer.project import UVProjection as UVP
 
 
-from .mvd.attention import SamplewiseAttnProcessor2_0, replace_attention_processors
-from .mvd.prompt import *
-from .mvd.step import step_tex
+from .syncmvd.attention import SamplewiseAttnProcessor2_0, replace_attention_processors
+from .syncmvd.prompt import *
+from .syncmvd.step import step_tex
 from .utils import *
 
 
@@ -142,7 +142,7 @@ def split_groups(attention_mask, max_batch_size, ref_view=[]):
 
 '''
 
-class StableControlNetMVDPipeline(StableDiffusionControlNetPipeline):
+class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 	def __init__(
 		self, 
 		vae: AutoencoderKL,

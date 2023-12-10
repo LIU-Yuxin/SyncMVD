@@ -5,7 +5,7 @@ from datetime import datetime
 import torch
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 from diffusers import DDPMScheduler, UniPCMultistepScheduler
-from src.pipeline import StableControlNetMVDPipeline
+from src.pipeline import StableSyncMVDPipeline
 from src.configs import *
 from shutil import copy
 
@@ -66,11 +66,11 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
 
 pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
 
-mvd = StableControlNetMVDPipeline(**pipe.components)
+syncmvd = StableSyncMVDPipeline(**pipe.components)
 
 
 
-result_tex_rgb, textured_views, v =mvd(
+result_tex_rgb, textured_views, v = syncmvd(
 	prompt=opt.prompt,
 	height=opt.latent_view_size*8,
 	width=opt.latent_view_size*8,
