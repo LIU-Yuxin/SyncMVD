@@ -2,3 +2,4 @@
 *.pyc
 /assets/*.py
 /assets/*.mp4
+/data/*/MVD*/
