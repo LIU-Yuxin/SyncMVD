@@ -1,6 +1,6 @@
 import gradio as gr
 import os
-from os.path import join, isdir, isfile
+from os.path import join, isdir, isfile, splitext, basename
 import tempfile
 import yaml
 from datetime import datetime
@@ -51,7 +51,8 @@ def generate(
 		"tex_fast_preview": True,
 		}
 
-	with open(join(temp_dir, "config.yaml"), "w") as file:
+	config_file = join(temp_dir, "config.yaml")
+	with open(config_file, "w") as file:
 		config = {"mesh": mesh_path, "prompt": prompt}
 		yaml.dump(config, file)
 
@@ -69,7 +70,8 @@ def generate(
 
 	syncmvd = StableSyncMVDPipeline(**pipe.components)
 
-	opt = parse_config(config_file=config)
+	opt = parse_config(config_file=config_file)
+	camera_azims = [int(s) for s in camera_azims.strip().replace(" ", "").split(",")]
 
 	result_tex_rgb, textured_views, v = syncmvd(
 		prompt=prompt,
@@ -77,7 +79,7 @@ def generate(
 		width=opt.latent_view_size*8,
 		num_inference_steps=timesteps,
 		guidance_scale=guidance_scale,
-		negative_prompt=negative_prompt,
+		negative_prompt=neg_prompt,
 		
 		generator=torch.manual_seed(seed) if seed!=-1 else None,
 		max_batch_size=48,
@@ -108,7 +110,7 @@ def generate(
 		
 		
 		)
-	return [join(output_dir, "results", "textured.obj"), join(output_dir, "results", "textured.png")]
+	return [join(output_dir, "results", "textured.glb"), join(output_dir, "results", "textured.png")]
 
 
 def setup_demo():
@@ -123,7 +125,7 @@ def setup_demo():
 			
 			with gr.Column():
 				gr_mesh_input = gr.Model3D(
-				    camera_position=(90, 90, None),
+				    camera_position=(90, 90, 3),
 				    label="Mesh input"
 				)
 			
@@ -176,8 +178,7 @@ def setup_demo():
 					value="depth",
 					label="Conditioning"
 				)
-				gr_seed = gr.Textbox(
-					lines=1, 
+				gr_seed = gr.Number(
 					value="-1", 
 					label="Seed"
 				)
@@ -227,6 +228,7 @@ def setup_demo():
     
 
 if __name__ == '__main__':
-	with tempfile.TemporaryDirectory() as temp_dir:
-		demo = setup_demo()
-		demo.launch()
+	# with tempfile.TemporaryDirectory() as temp_dir:
+	temp_dir="./data"
+	demo = setup_demo()
+	demo.launch()

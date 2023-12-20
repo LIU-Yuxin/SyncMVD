@@ -88,6 +88,24 @@ class UVProjection():
 				faces_uvs= self.mesh.textures.faces_uvs_list()[0],
 				texture_map=texture)
 
+	# Save glb mesh
+	def save_glb_mesh(self, mesh_path, texture):
+		from pytorch3d.io.experimental_gltf_io import MeshGlbFormat
+		io = IO()
+		io.register_meshes_format(MeshGlbFormat())
+		mesh = self.mesh[0].clone()
+		new_tex = TexturesUV(
+			[texture], 
+			mesh.textures.faces_uvs_padded(), 
+			mesh.textures.verts_uvs_padded(), 
+			sampling_mode=self.sampling_mode
+			)
+		mesh.textures = new_tex
+		io.save_mesh(
+			mesh,
+			mesh_path)
+
+
 	# Code referred to TEXTure code (https://github.com/TEXTurePaper/TEXTurePaper.git)
 	def uv_unwrap(self, mesh):
 		verts_list = mesh.verts_list()[0]
