@@ -2,6 +2,7 @@ import gradio as gr
 import os
 from os.path import join, isdir, isfile
 import tempfile
+import yaml
 from datetime import datetime
 import torch
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
@@ -21,13 +22,12 @@ def generate(
 		cond_type,
 		camera_azims
 	):
-	opt = parse_config(is_gradio=True)
+	
 	mesh_path = mesh_file
 	output_root = temp_dir
 
 	output_name_components = []
-	if opt.prefix and opt.prefix != "":
-		output_name_components.append(opt.prefix)
+	output_name_components.append("MVD")
 	mesh_name = splitext(basename(mesh_path))[0].replace(" ", "_")
 	output_name_components.append(mesh_name)
 	output_name_components.append(datetime.now().strftime("%d%b%Y-%H%M%S%f"))
@@ -51,6 +51,10 @@ def generate(
 		"tex_fast_preview": True,
 		}
 
+	with open(join(temp_dir, "config.yaml"), "w") as file:
+		config = {"mesh": mesh_path, "prompt": prompt}
+		yaml.dump(config, file)
+
 	if cond_type == "normal":
 		controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_normalbae", variant="fp16", torch_dtype=torch.float16)
 	elif cond_type == "depth":
@@ -65,7 +69,7 @@ def generate(
 
 	syncmvd = StableSyncMVDPipeline(**pipe.components)
 
-
+	opt = parse_config(config_file=config)
 
 	result_tex_rgb, textured_views, v = syncmvd(
 		prompt=prompt,

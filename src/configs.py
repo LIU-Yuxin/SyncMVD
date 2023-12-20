@@ -1,12 +1,12 @@
 import configargparse
 
-def parse_config(is_gradio=False):
+def parse_config(config_file=None):
     parser = configargparse.ArgumentParser(
                         prog='Multi-View Diffusion',
                         description='Generate texture given mesh and texture prompt',
                         epilog='Refer to https://arxiv.org/abs/2311.12891 for more details')
     # File Config
-    parser.add_argument('--config', type=str, required=not is_gradio, is_config_file=True)
+    parser.add_argument('--config', type=str, required=config_file is None, is_config_file=True, default=config_file)
     parser.add_argument('--mesh', type=str, required=True)
     parser.add_argument('--mesh_config_relative', action='store_true', help="Search mesh file relative to the config path instead of current working directory")
     parser.add_argument('--output', type=str, default=None, help="If not provided, use the parent directory of config file for output")
