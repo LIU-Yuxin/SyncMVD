@@ -8,3 +8,4 @@ accelerate
 cupy-cuda11x==12.2.0
 configargparse
 ipython
+gradio
