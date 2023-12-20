@@ -21,7 +21,7 @@ def generate(
 		cond_type,
 		camera_azims
 	):
-	opt = parse_config()
+	opt = parse_config(is_gradio=True)
 	mesh_path = mesh_file
 	output_root = temp_dir
 
