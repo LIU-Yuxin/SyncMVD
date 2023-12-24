@@ -21,7 +21,8 @@ def step_tex(
 		guidance_scale = 1,
 		main_views = [],
 		hires_original_views = True,
-		exp=None
+		exp=None,
+		cos_weighted=True
 ):
 	t = timestep
 
@@ -91,9 +92,9 @@ def step_tex(
 	# 6. Add noise
 	variance = 0
 
-	if predicted_variance:
+	if predicted_variance is not None:
 		variance_views = [view for view in predicted_variance]
-		variance_views, variance_tex, visibility_weights,_,_ = uvp.bake_texture(views=variance_views, main_views=main_views, cos_weighted=cos_weighted, exp=exp)
+		variance_views, variance_tex, visibility_weights = uvp.bake_texture(views=variance_views, main_views=main_views, cos_weighted=cos_weighted, exp=exp)
 		variance_views = torch.stack(variance_views, axis=0)[:,:-1,...]
 	else:
 		variance_tex = None

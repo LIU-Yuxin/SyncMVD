@@ -49,7 +49,7 @@ logging_config = {
 	"output_dir":output_dir, 
 	# "output_name":None, 
 	# "intermediate":False, 
-	"log_interval":11,
+	"log_interval":opt.log_interval,
 	"view_fast_preview": opt.view_fast_preview,
 	"tex_fast_preview": opt.tex_fast_preview,
 	}
