@@ -6,7 +6,7 @@ Official [Pytorch](https://pytorch.org/) & [Diffusers](https://github.com/huggin
 
 **[Text-Guided Texturing by Synchronized Multi-View Diffusion](https://arxiv.org/pdf/2311.12891)**
 
-Authors: Yuxin Liu, Minshan Xie, Hanyuan Liu, Tien-Tsin Wong
+<!-- Authors: Yuxin Liu, Minshan Xie, Hanyuan Liu, Tien-Tsin Wong -->
 
 <img src=assets/teaser.jpg width=768>
 
