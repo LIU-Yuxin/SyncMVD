@@ -155,7 +155,8 @@ def JFAVoronoiDiagram(ping, pong):
     frame = 0
     # iterate while step size is greater than 0
     while step:
-        voronoiKernel((min(x_dim, 1024),), (min(y_dim, 1024),), (step, x_dim, y_dim, ping, pong))
+        voronoiKernel((min(x_dim, 512),), (min(y_dim, 512),), (step, x_dim, y_dim, ping, pong))
+        # Ajusted the upper bound of the kernel dimension from 1024 to 512 to avoid CUDA OUT OF RESOURCE problem
         ping, pong = pong, ping
         frame += 1
         step //= 2

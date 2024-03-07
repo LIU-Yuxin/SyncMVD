@@ -93,7 +93,7 @@ result_tex_rgb, textured_views, v = syncmvd(
 	mesh_autouv=opt.mesh_autouv,
 
 	camera_azims=opt.camera_azims,
-	top_cameras=opt.top_cameras,
+	top_cameras=not opt.no_top_cameras,
 	texture_size=opt.latent_tex_size,
 	render_rgb_size=opt.rgb_view_size,
 	texture_rgb_size=opt.rgb_tex_size,
