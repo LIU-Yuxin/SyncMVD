@@ -317,6 +317,8 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		render_rgb_size=1024,
 		texture_rgb_size = 1024,
 		multiview_diffusion_end=0.8,
+		exp_start=0.0,
+		exp_end=6.0,
 		shuffle_background_change=0.4,
 		shuffle_background_end=0.99, #0.4
 
@@ -629,6 +631,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 				self.uvp.to(self._execution_device)
 				# compute the previous noisy sample x_t -> x_t-1
 				# Multi-View step or individual step
+				current_exp = ((exp_end-exp_start) * i / num_inference_steps) + exp_start
 				if t > (1-multiview_diffusion_end)*num_timesteps:
 					step_results = step_tex(
 						scheduler=self.scheduler, 
@@ -639,7 +642,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 						texture=latent_tex,
 						return_dict=True, 
 						main_views=[], 
-						exp=0,
+						exp= current_exp,
 						**extra_step_kwargs
 					)
 

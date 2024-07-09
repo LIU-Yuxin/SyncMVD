@@ -90,7 +90,7 @@ result_tex_rgb, textured_views, v = syncmvd(
 
 	mesh_path=mesh_path,
 	mesh_transform={"scale":opt.mesh_scale},
-	mesh_autouv=opt.mesh_autouv,
+	mesh_autouv=not opt.keep_mesh_uv,
 
 	camera_azims=opt.camera_azims,
 	top_cameras=not opt.no_top_cameras,
@@ -98,6 +98,8 @@ result_tex_rgb, textured_views, v = syncmvd(
 	render_rgb_size=opt.rgb_view_size,
 	texture_rgb_size=opt.rgb_tex_size,
 	multiview_diffusion_end=opt.mvd_end,
+	exp_start=opt.mvd_exp_start,
+	exp_end=opt.mvd_exp_end,
 	ref_attention_end=opt.ref_attention_end,
 	shuffle_background_change=opt.shuffle_bg_change,
 	shuffle_background_end=opt.shuffle_bg_end,

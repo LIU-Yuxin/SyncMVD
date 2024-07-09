@@ -22,30 +22,30 @@ The method shares the denoised content among different views in each denoising s
         <col style="width: 25%;">
   <tr>
   <td>
-    <img src=assets/gif/bird.gif width="170">
+    <img src=assets/gif/batman.gif width="170">
   </td>
   <td>
     <img src=assets/gif/david.gif width="170">
   </td>
   <td>
-    <img src=assets/gif/dog.gif width="170">
+    <img src=assets/gif/teapot.gif width="170">
   </td>
   <td>
-    <img src=assets/gif/doll.gif width="170">
+    <img src=assets/gif/vangogh.gif width="170">
   </td>
   </tr>
   <tr style="vertical-align: text-top;">
-    <td style="font-family:courier">"Photo of a beautiful magpie."</td>
+    <td style="font-family:courier">"Photo of Batman, sitting on a rock."</td>
     <td style="font-family:courier">"Publicity photo of a 60s movie, full color."</td>
-    <td style="font-family:courier">"A cute shiba inu dog."</td>
-    <td style="font-family:courier">"A cute Hatsune Miku plush doll, wearing beautiful dress."</td>
+    <td style="font-family:courier">"A photo of a beautiful chintz glided teapot."</td>
+    <td style="font-family:courier">"A beautiful oil paint of a stone building in Van Gogh style."</td>
   </tr>
    <tr>
   <td>
     <img src=assets/gif/gloves.gif width="170" >
   </td>
   <td>
-    <img src=assets/gif/hamburger.gif width="170" >
+    <img src=assets/gif/link.gif width="170" >
   </td>
   <td>
     <img src=assets/gif/house.gif width="170" >
@@ -56,14 +56,14 @@ The method shares the denoised content among different views in each denoising s
   </tr>
   <tr style="vertical-align: text-top;">
     <td style="font-family:courier">"A photo of a robot hand with mechanical joints."</td>
-    <td style="font-family:courier">"Photo of a hamburger."</td>
+    <td style="font-family:courier">"Photo of link in the legend of zelda, photo-realistic, unreal 5."</td>
     <td style="font-family:courier">"Photo of a lowpoly fantasy house from warcraft game, lawn."</td>
     <td style="font-family:courier">"Blue and white pottery style lucky cat with intricate patterns."</td>
   </tr>
 
   <tr>
   <td>
-    <img src=assets/gif/mask.gif width="170" >
+    <img src=assets/gif/chair.gif width="170" >
   </td>
   <td>
     <img src=assets/gif/Moai.gif width="170" >
@@ -72,15 +72,37 @@ The method shares the denoised content among different views in each denoising s
     <img src=assets/gif/sneakers.gif width="170">
   </td>
   <td>
-    <img src=assets/gif/teddybear.gif width="170">
+    <img src=assets/gif/dragon.gif width="170">
   </td>
   </tr>
   <tr style="vertical-align: text-top;">
-    <td style="font-family:courier">"A Japanese demon mask."</td>
+    <td style="font-family:courier">"A photo of an beautiful embroidered seat with royal patterns"</td>
     <td style="font-family:courier">"Photo of James Harden."</td>
     <td style="font-family:courier">"A photo of a gray and black Nike Airforce high top sneakers."</td>
-    <td style="font-family:courier">"Teddy bear wearing superman costume."</td>
+    <td style="font-family:courier">"A photo of a Chinese dragon sculpture, glazed facing, vivid colors."</td>
   </tr>
+
+  <tr>
+  <td>
+    <img src=assets/gif/guardian.gif width="170" >
+  </td>
+  <td>
+    <img src=assets/gif/horse.gif width="170" >
+  </td>
+  <td>
+    <img src=assets/gif/jackiechan.gif width="170" >
+  </td>
+  <td>
+    <img src=assets/gif/knight.gif width="170">
+  </td>
+  </tr>
+  <tr style="vertical-align: text-top;">
+    <td style="font-family:courier">"A muscular man wearing grass hula skirt."</td>
+    <td style="font-family:courier">"Photo of a horse."</td>
+    <td style="font-family:courier">"A Jackie Chan figure."</td>
+    <td style="font-family:courier">"A photo of a demon knight, flame in eyes, warcraft style."</td>
+  </tr>
+
 </table>
 
 ## Installation :wrench:

@@ -6,3 +6,5 @@ steps: 30
 cond_type: "depth"
 seed: 1
 mesh_scale: 1
+tex_fast_preview: True
+view_fast_preview: True
