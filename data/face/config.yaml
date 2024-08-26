@@ -1,7 +1,7 @@
 mesh: "./face.obj"
 mesh_config_relative: True    # mesh is placed relative to the config file
 use_mesh_name: False
-prompt: "Portrait photo of Kratos, god of war."
+prompt: "Portrait photo of batman, Dark Knight(2008), artstation, stylized."
 steps: 30
 cond_type: "depth"
 seed: 1
