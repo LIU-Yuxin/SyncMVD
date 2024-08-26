@@ -1,5 +1,6 @@
 import torch
 import pytorch3d
+from trimesh.ray.ray_pyembree import RayMeshIntersector
 
 
 from pytorch3d.io import load_objs_as_meshes, load_obj, save_obj, IO
@@ -295,6 +296,7 @@ class UVProjection():
 		self.renderer.shader = HardGeometryShader(device=self.device, cameras=self.cameras[0], lights=self.lights)
 		tmp_mesh = self.mesh.clone()
 		
+		# TODO: Implement XRay
 		verts, normals, depths, cos_angles, texels, fragments = self.renderer(tmp_mesh.extend(len(self.cameras)), cameras=self.cameras, lights=self.lights)
 		self.renderer.shader = shader
 
@@ -432,6 +434,7 @@ class UVProjection():
 	# First bake into individual textures then combine based on cosine weight
 	@torch.enable_grad()
 	def bake_texture(self, views=None, main_views=[], cos_weighted=True, channels=None, exp=None, noisy=False, generator=None):
+		# TODO: Implement texture baking w/ occluded region
 		if not exp:
 			exp=1
 		if not channels:
