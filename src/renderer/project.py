@@ -1,6 +1,7 @@
 import torch
 import pytorch3d
 from trimesh.ray.ray_pyembree import RayMeshIntersector
+from trimesh import Trimesh
 
 
 from pytorch3d.io import load_objs_as_meshes, load_obj, save_obj, IO
@@ -24,6 +25,109 @@ from .geometry import HardGeometryShader
 from .shader import HardNChannelFlatShader
 from .voronoi import voronoi_solve
 
+import numpy as np
+
+# Copied from XRay
+class RaycastingImaging:
+	def __init__(self):
+		self.rays_screen_coords, self.rays_origins, self.rays_directions = None, None, None
+
+	def __del__(self):
+		del self.rays_screen_coords
+		del self.rays_origins
+		del self.rays_directions
+
+	def prepare(self, image_height, image_width, c2w=None):
+		# scanning radius is determined from the mesh extent
+		self.rays_screen_coords, self.rays_origins, self.rays_directions = generate_rays((image_height, image_width), c2w)
+	
+	def get_image(self, mesh):  #, features):
+		# get a point cloud with corresponding indexes
+		mesh_face_indexes, ray_indexes, points = ray_cast_mesh(mesh, self.rays_origins, self.rays_directions)
+
+		# extract normals
+		normals = mesh.face_normals[mesh_face_indexes]
+		colors = mesh.visual.face_colors[mesh_face_indexes]
+
+		mesh_face_indexes = np.unique(mesh_face_indexes)
+		mesh_vertex_indexes = np.unique(mesh.faces[mesh_face_indexes])
+		direction = self.rays_directions[ray_indexes]
+		return ray_indexes, points, normals, colors, direction, mesh_vertex_indexes, mesh_face_indexes
+
+		# assemble mesh fragment into a submesh
+		# nbhood = reindex_zerobased(mesh, mesh_vertex_indexes, mesh_face_indexes)
+		# return ray_indexes, points, normals, nbhood, mesh_vertex_indexes, mesh_face_indexes
+
+def get_rays(directions, c2w, near = 1):
+	"""
+	Get ray origin and normalized directions in world coordinate for all pixels in one image.
+	Reference: https://www.scratchapixel.com/lessons/3d-basic-rendering/
+			   ray-tracing-generating-camera-rays/standard-coordinate-systems
+
+	Inputs:
+		directions: (H, W, 3) precomputed ray directions in camera coordinate
+		c2w: (3, 4) transformation matrix from camera coordinate to world coordinate
+
+	Outputs:
+		rays_o: (H*W, 3), the origin of the rays in world coordinate
+		rays_d: (H*W, 3), the normalized direction of the rays in world coordinate
+	"""
+	# Rotate ray directions from camera coordinate to the world coordinate
+	rays_d = directions @ c2w[:3, :3].T # (H, W, 3)
+	rays_d = rays_d / (np.linalg.norm(rays_d, axis=-1, keepdims=True) + 1e-8)
+	# The origin of all rays is the camera origin in world coordinate
+
+	H, W, _ = directions.shape
+	# Generate a grid of pixel coordinates in camera space
+	# These represent the ray origins in orthographic projection
+	i, j = np.meshgrid(np.linspace(-1, 1, W), np.linspace(-1, 1, H))  # Normalized pixel grid
+	
+	# Assuming the camera is facing along the -z direction in camera space
+	# The z values are fixed (e.g., at 'near' distance from the camera plane)
+	pixel_positions_camera = np.stack([i, j, -np.ones_like(i) * near], axis=-1)  # (H, W, 3)
+	
+	# Transform pixel positions from camera space to world space using the c2w matrix
+	pixel_positions_world = pixel_positions_camera @ c2w[:3, :3].T + c2w[:3, 3]  # (H, W, 3)
+	
+	# The ray origins are the pixel positions in world space
+	rays_o = pixel_positions_world
+
+	rays_o = pixel_positions_camera
+
+	return rays_o, rays_d
+
+def generate_rays(image_resolution, c2w):
+	if isinstance(image_resolution, tuple):
+		assert len(image_resolution) == 2
+	else:
+		image_resolution = (image_resolution, image_resolution)
+	image_width, image_height = image_resolution
+
+	# generate an array of screen coordinates for the rays
+	# (rays are placed at locations [i, j] in the image)
+	rays_screen_coords = np.mgrid[0:image_height, 0:image_width].reshape(
+		2, image_height * image_width).T  # [h, w, 2]
+
+	grid = rays_screen_coords.reshape(image_height, image_width, 2)
+	
+	i, j = grid[..., 1], grid[..., 0]
+	directions = np.stack([np.zeros_like(i), np.zeros_like(i), np.ones_like(i)], -1) # (H, W, 3)
+
+	rays_origins, ray_directions = get_rays(directions, c2w)
+	rays_origins = rays_origins.reshape(-1, 3)
+	ray_directions = ray_directions.reshape(-1, 3)
+	
+	return rays_screen_coords, rays_origins, ray_directions
+
+
+def ray_cast_mesh(mesh, rays_origins, ray_directions):
+	intersector = RayMeshIntersector(mesh)
+	index_triangles, index_ray, point_cloud = intersector.intersects_id(
+		ray_origins=rays_origins,
+		ray_directions=ray_directions,
+		multiple_hits=True,
+		return_locations=True)
+	return index_triangles, index_ray, point_cloud
 
 # Pytorch3D based renderering functions, managed in a class
 # Render size is recommended to be the same as your latent view size
@@ -38,6 +142,9 @@ class UVProjection():
 		self.target_size = (texture_size,texture_size)
 		self.render_size = render_size
 		self.sampling_mode = sampling_mode
+
+		self.max_hits = 1
+		self.occ_mesh = None
 
 
 	# Load obj mesh, rescale the mesh to fit into the bounding box
@@ -283,7 +390,49 @@ class UVProjection():
 			cos_maps.append(zero_map)
 		self.cos_maps = cos_maps
 
+	def generate_occluded_geometry(self):
+		if self.occ_mesh is not None:
+			return
 		
+		size = [self.renderer.rasterizer.raster_settings.image_size * 2 for _ in range(2)]
+
+		vertices = self.mesh.verts_packed().cpu().numpy()  # (V, 3) shape, move to CPU and convert to numpy
+		faces = self.mesh.faces_packed().cpu().numpy()  # (F, 3) shape, move to CPU and convert to numpy
+
+		raycast = RaycastingImaging()
+
+		visible_faces_list = []
+		
+		for camera in self.cameras:
+			R = camera.R.cpu().numpy()
+			T = camera.T.cpu().numpy()
+
+			Rt = np.eye(4)  # Start with an identity matrix
+			Rt[:3, :3] = R  # Top-left 3x3 is the transposed rotation
+			Rt[:3, 3] = T   # Top-right 3x1 is the inverted translation
+
+			mesh_frame = Trimesh(vertices=vertices, faces=faces).apply_transform(Rt)
+			# mesh_frame.export("trans.ply")
+
+			c2w = np.eye(4).astype(np.float32)[:3]
+			raycast.prepare(image_height=size[1], image_width=size[0], c2w=c2w)
+			ray_indexes, points, normals, colors, direction, mesh_vertex_indexes, mesh_face_indexes = raycast.get_image(mesh_frame)   
+			
+			for i in range(self.max_hits):
+				# print(faces.shape, len(mesh_face_indexes))
+				mesh_face_indexes = np.hstack([mesh_face_indexes, np.array([mesh_face_indexes[-1] for _ in range(faces.shape[0] - len(mesh_face_indexes))])])
+				visible_faces = faces[mesh_face_indexes]  # Only keep the visible faces
+				visible_faces = torch.tensor(visible_faces, dtype=torch.int64, device='cuda')
+				# print(visible_faces)
+
+				visible_faces_list.append(visible_faces)
+
+		verts_tensor = torch.stack([self.mesh.verts_packed()] * len(self.cameras), dim=0)
+		faces_tensor = torch.stack(visible_faces_list, dim=1)  # Shape: (num_meshes, num_total_faces, 3)
+
+		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras), faces = visible_faces_list, textures = self.mesh.textures.extend(len(self.cameras)))
+
+
 	# Get geometric info from fragment shader
 	# Can be used for generating conditioning image and cosine weights
 	# Returns some information you may not need, remember to release them for memory saving
@@ -297,7 +446,9 @@ class UVProjection():
 		tmp_mesh = self.mesh.clone()
 		
 		# TODO: Implement XRay
-		verts, normals, depths, cos_angles, texels, fragments = self.renderer(tmp_mesh.extend(len(self.cameras)), cameras=self.cameras, lights=self.lights)
+		self.generate_occluded_geometry()
+		
+		verts, normals, depths, cos_angles, texels, fragments = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
 		self.renderer.shader = shader
 
 		if image_size:
