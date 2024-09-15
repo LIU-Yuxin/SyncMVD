@@ -374,15 +374,15 @@ class UVProjection():
 			channels = self.channels
 		cos_maps = []
 		tmp_mesh = self.mesh.clone()
-		for i in range(len(self.cameras)):
+		for i, mesh in enumerate(self.occ_mesh):
 			
 			zero_map = torch.zeros(self.target_size+(channels,), device=self.device, requires_grad=True)
 			optimizer = torch.optim.SGD([zero_map], lr=1, momentum=0)
 			optimizer.zero_grad()
-			zero_tex = TexturesUV([zero_map], self.mesh.textures.faces_uvs_padded(), self.mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
-			tmp_mesh.textures = zero_tex
+			zero_tex = TexturesUV([zero_map], mesh.textures.faces_uvs_padded(), mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
+			mesh.textures = zero_tex
 
-			images_predicted = self.renderer(tmp_mesh, cameras=self.cameras[i], lights=self.lights)
+			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights)
 
 			loss = torch.sum((cos_angles[i,:,:,0:1]**1 - images_predicted)**2)
 			loss.backward()
@@ -408,6 +408,7 @@ class UVProjection():
 		raycast = RaycastingImaging()
 
 		visible_faces_list = []
+		visible_texture_map_list = []
 		
 		for k, camera in enumerate(self.cameras):
 			R = camera.R.cpu().numpy()
@@ -425,14 +426,22 @@ class UVProjection():
 			ray_indexes, points, mesh_face_indices = raycast.get_image(mesh_frame, self.max_hits)   
 			
 			for i in range(self.max_hits):
-				mesh_face_indexes = np.hstack([mesh_face_indices[i], np.array([mesh_face_indices[i][-1] for _ in range(faces.shape[0] - mesh_face_indices[i].shape[0])])])
-				visible_faces = faces[mesh_face_indexes]  # Only keep the visible faces
+				# mesh_face_indexes = np.hstack([mesh_face_indices[i], np.array([mesh_face_indices[i][-1] for _ in range(faces.shape[0] - mesh_face_indices[i].shape[0])])])
+				visible_faces = faces[mesh_face_indices[i]]  # Only keep the visible faces
 				# Trimesh(vertices=vertices, faces=visible_faces).export(str(k)+"trans"+str(i)+".ply")
 				visible_faces = torch.tensor(visible_faces, dtype=torch.int64, device='cuda')
 
 				visible_faces_list.append(visible_faces)
+				new_map = torch.zeros(self.target_size+(self.channels,), device=self.device)
+				visible_texture_map_list.append(self.mesh.textures.faces_uvs_padded()[0, mesh_face_indices[i]])
 
-		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras), faces = visible_faces_list, textures = self.mesh.textures.extend(len(self.cameras)))
+		textures = TexturesUV(
+			[new_map] * len(self.cameras) * self.max_hits, 
+			visible_texture_map_list, 
+			[self.mesh.textures.verts_uvs_padded()[0]] * len(self.cameras) * self.max_hits, 
+			sampling_mode=self.sampling_mode
+			)
+		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras), faces = visible_faces_list, textures = textures)
 
 	# Get geometric info from fragment shader
 	# Can be used for generating conditioning image and cosine weights
@@ -509,10 +518,9 @@ class UVProjection():
 			zero_map = torch.zeros(self.target_size+(channels,), device=self.device, requires_grad=True)
 			optimizer = torch.optim.SGD([zero_map], lr=1, momentum=0)
 			optimizer.zero_grad()
-			zero_tex = TexturesUV([zero_map], self.mesh.textures.faces_uvs_padded(), self.mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
-			tmp_mesh.textures = zero_tex
+			zero_tex = TexturesUV([zero_map], mesh.textures.faces_uvs_padded(), mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
+			mesh.textures = zero_tex
 			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights)
-			# TODO: Can't get grads
 			loss = torch.sum((1 - images_predicted)**2)
 			loss.backward()
 			optimizer.step()
