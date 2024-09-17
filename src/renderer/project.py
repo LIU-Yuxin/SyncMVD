@@ -290,12 +290,12 @@ class UVProjection():
 		new_map = texture.permute(1, 2, 0)
 		new_map = new_map.to(self.device)
 		new_tex = TexturesUV(
-			[new_map], 
-			self.mesh.textures.faces_uvs_padded(), 
-			self.mesh.textures.verts_uvs_padded(), 
+			[new_map] * len(self.occ_mesh), 
+			self.occ_mesh.textures.faces_uvs_padded(), 
+			self.occ_mesh.textures.verts_uvs_padded(), 
 			sampling_mode=self.sampling_mode
 			)
-		self.mesh.textures = new_tex
+		self.occ_mesh.textures = new_tex
 
 
 	# Set the initial normal noise texture
@@ -455,7 +455,6 @@ class UVProjection():
 		self.renderer.shader = HardGeometryShader(device=self.device, cameras=self.cameras[0], lights=self.lights)
 		tmp_mesh = self.mesh.clone()
 		
-		# TODO: Implement XRay
 		self.generate_occluded_geometry()
 		
 		verts, normals, depths, cos_angles, texels, fragments = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
@@ -534,6 +533,7 @@ class UVProjection():
 	# First get face ids from each view, then filter pixels on UV space to generate masks
 	@torch.no_grad()
 	def calculate_visible_triangle_mask(self, channels=None, image_size=(512,512)):
+		# TODO: update visible triagle mask
 		if not channels:
 			channels = self.channels
 
@@ -603,15 +603,21 @@ class UVProjection():
 			channels = self.channels
 		views = [view.permute(1, 2, 0) for view in views]
 
-		tmp_mesh = self.mesh
 		bake_maps = [torch.zeros(self.target_size+(views[0].shape[2],), device=self.device, requires_grad=True) for view in views]
 		optimizer = torch.optim.SGD(bake_maps, lr=1, momentum=0)
 		optimizer.zero_grad()
 		loss = 0
-		for i in range(len(self.cameras)):    
-			bake_tex = TexturesUV([bake_maps[i]], tmp_mesh.textures.faces_uvs_padded(), tmp_mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
-			tmp_mesh.textures = bake_tex
-			images_predicted = self.renderer(tmp_mesh, cameras=self.cameras[i], lights=self.lights, device=self.device)
+
+		new_tex = TexturesUV(
+			bake_maps, 
+			self.occ_mesh.textures.faces_uvs_padded(), 
+			self.occ_mesh.textures.verts_uvs_padded(), 
+			sampling_mode=self.sampling_mode
+			)
+		self.occ_mesh.textures = new_tex
+
+		for i, mesh in enumerate(self.occ_mesh):    
+			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights, device=self.device)
 			predicted_rgb = images_predicted[..., :-1]
 			loss += (((predicted_rgb[...] - views[i]))**2).sum()
 		loss.backward(retain_graph=False)
@@ -631,10 +637,8 @@ class UVProjection():
 		baked /= total_weights + 1E-8
 		baked = voronoi_solve(baked, total_weights[...,0])
 
-		bake_tex = TexturesUV([baked], tmp_mesh.textures.faces_uvs_padded(), tmp_mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
-		tmp_mesh.textures = bake_tex
-		extended_mesh = tmp_mesh.extend(len(self.cameras))
-		images_predicted = self.renderer(extended_mesh, cameras=self.cameras, lights=self.lights)
+		self.set_texture_map(baked)
+		images_predicted = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
 		learned_views = [image.permute(2, 0, 1) for image in images_predicted]
 
 		return learned_views, baked.permute(2, 0, 1), total_weights.permute(2, 0, 1)

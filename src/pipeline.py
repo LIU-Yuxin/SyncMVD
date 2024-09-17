@@ -691,7 +691,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 
 				# Logging at "log_interval" intervals and last step
 				# Choose to uses color approximation or vae decoding
-				if i % log_interval == log_interval-1 or t == 1:
+				if i % log_interval == log_interval-1 or t == 1 or i == 0:
 					if view_fast_preview:
 						decoded_results = []
 						for latent_images in intermediate_results[-1]:
