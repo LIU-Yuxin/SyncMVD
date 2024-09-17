@@ -291,7 +291,7 @@ class UVProjection():
 		new_map = new_map.to(self.device)
 		new_tex = TexturesUV(
 			[new_map] * len(self.occ_mesh), 
-			self.occ_mesh.textures.faces_uvs_padded(), 
+			self.visible_texture_map_list,
 			self.occ_mesh.textures.verts_uvs_padded(), 
 			sampling_mode=self.sampling_mode
 			)
@@ -400,15 +400,13 @@ class UVProjection():
 		if self.occ_mesh is not None:
 			return
 		
-		size = [self.renderer.rasterizer.raster_settings.image_size * 2 for _ in range(2)]
-
 		vertices = self.mesh.verts_packed().cpu().numpy()  # (V, 3) shape, move to CPU and convert to numpy
 		faces = self.mesh.faces_packed().cpu().numpy()  # (F, 3) shape, move to CPU and convert to numpy
 
 		raycast = RaycastingImaging()
 
 		visible_faces_list = []
-		visible_texture_map_list = []
+		self.visible_texture_map_list = []
 		
 		for k, camera in enumerate(self.cameras):
 			R = camera.R.cpu().numpy()
@@ -422,7 +420,7 @@ class UVProjection():
 			# mesh_frame.export(str(k)+"trans.ply")
 
 			c2w = np.eye(4).astype(np.float32)[:3]
-			raycast.prepare(image_height=192, image_width=192, c2w=c2w)
+			raycast.prepare(image_height=512, image_width=512, c2w=c2w)
 			ray_indexes, points, mesh_face_indices = raycast.get_image(mesh_frame, self.max_hits)   
 			
 			for i in range(self.max_hits):
@@ -433,16 +431,17 @@ class UVProjection():
 
 				visible_faces_list.append(visible_faces)
 				new_map = torch.zeros(self.target_size+(self.channels,), device=self.device)
-				visible_texture_map_list.append(self.mesh.textures.faces_uvs_padded()[0, mesh_face_indices[i]])
+				self.visible_texture_map_list.append(self.mesh.textures.faces_uvs_padded()[0, mesh_face_indices[i]])
 
 		textures = TexturesUV(
 			[new_map] * len(self.cameras) * self.max_hits, 
-			visible_texture_map_list, 
+			self.visible_texture_map_list, 
 			[self.mesh.textures.verts_uvs_padded()[0]] * len(self.cameras) * self.max_hits, 
 			sampling_mode=self.sampling_mode
 			)
 		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras), faces = visible_faces_list, textures = textures)
-
+		self.occ_cameras = FoVOrthographicCameras(device=self.device, R=self.cameras.R.repeat_interleave(self.max_hits, 0), T=self.cameras.T.repeat_interleave(self.max_hits, 0), scale_xyz=self.cameras.scale_xyz.repeat_interleave(self.max_hits, 0))
+		# TODO: max_hits = 2
 	# Get geometric info from fragment shader
 	# Can be used for generating conditioning image and cosine weights
 	# Returns some information you may not need, remember to release them for memory saving
@@ -586,7 +585,6 @@ class UVProjection():
 
 	# Render the current mesh and texture from current cameras
 	def render_textured_views(self):
-		meshes = self.mesh.extend(len(self.cameras))
 		images_predicted = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
 
 		return [image.permute(2, 0, 1) for image in images_predicted]
@@ -610,13 +608,14 @@ class UVProjection():
 
 		new_tex = TexturesUV(
 			bake_maps, 
-			self.occ_mesh.textures.faces_uvs_padded(), 
+			self.visible_texture_map_list,
 			self.occ_mesh.textures.verts_uvs_padded(), 
 			sampling_mode=self.sampling_mode
 			)
 		self.occ_mesh.textures = new_tex
 
 		for i, mesh in enumerate(self.occ_mesh):    
+			
 			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights, device=self.device)
 			predicted_rgb = images_predicted[..., :-1]
 			loss += (((predicted_rgb[...] - views[i]))**2).sum()
@@ -637,7 +636,15 @@ class UVProjection():
 		baked /= total_weights + 1E-8
 		baked = voronoi_solve(baked, total_weights[...,0])
 
-		self.set_texture_map(baked)
+		new_map = baked.to(self.device)
+		new_tex = TexturesUV(
+			[new_map] * len(self.occ_mesh), 
+			self.visible_texture_map_list,
+			self.occ_mesh.textures.verts_uvs_padded(), 
+			sampling_mode=self.sampling_mode
+			)
+		self.occ_mesh.textures = new_tex
+
 		images_predicted = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
 		learned_views = [image.permute(2, 0, 1) for image in images_predicted]
 
