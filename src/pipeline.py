@@ -61,7 +61,7 @@ color_names = list(color_constants.keys())
 
 # Used to generate depth or normal conditioning images
 @torch.no_grad()
-def get_conditioning_images(uvp, output_size, render_size=512, blur_filter=5, cond_type="normal"):
+def get_conditioning_images(uvp:UVP, output_size, render_size=512, blur_filter=5, cond_type="normal"):
 	verts, normals, depths, cos_maps, texels, fragments = uvp.render_geometry(image_size=render_size)
 	masks = normals[...,3][:,None,...]
 	masks = Resize((output_size//8,)*2, antialias=True)(masks)
@@ -155,6 +155,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		safety_checker: StableDiffusionSafetyChecker,
 		feature_extractor: CLIPImageProcessor,
 		requires_safety_checker: bool = False,
+		max_hits: int = 2,
 	):
 		super().__init__(
 			vae, text_encoder, tokenizer, unet, 
@@ -167,7 +168,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		self.enable_model_cpu_offload()
 		self.enable_vae_slicing()
 		self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)
-		self.max_hits = 2
+		self.max_hits = max_hits
 
 	
 	def initialize_pipeline(
@@ -253,11 +254,11 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		self.uvp_rgb = UVP(texture_size=texture_rgb_size, render_size=render_rgb_size, sampling_mode="nearest", channels=3, device=self._execution_device, max_hits=self.max_hits)
 		self.uvp_rgb.mesh = self.uvp.mesh.clone()
 		self.uvp_rgb.set_cameras_and_render_settings(self.camera_poses, centers=camera_centers, camera_distance=4.0)
-		_,_,_,cos_maps,_, _ = self.uvp_rgb.render_geometry()
-		self.uvp_rgb.calculate_cos_angle_weights(cos_maps, fill=False)
+		# _,_,_,cos_maps,_, _ = self.uvp_rgb.render_geometry()
+		# self.uvp_rgb.calculate_cos_angle_weights(cos_maps, fill=False)
 
 		# Save some VRAM
-		del _, cos_maps
+		# del _, cos_maps
 		self.uvp.to("cpu")
 		self.uvp_rgb.to("cpu")
 
@@ -496,10 +497,10 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 			for i, t in enumerate(timesteps):
 
 				# mix prompt embeds according to azim angle
-				positive_prompt_embeds = [azim_prompt(prompt_embed_dict, pose) for pose in self.camera_poses]
+				positive_prompt_embeds = [azim_prompt(prompt_embed_dict, pose) for pose in self.camera_poses] * self.max_hits
 				positive_prompt_embeds = torch.stack(positive_prompt_embeds, axis=0)
 
-				negative_prompt_embeds = [azim_neg_prompt(negative_prompt_embed_dict, pose) for pose in self.camera_poses]
+				negative_prompt_embeds = [azim_neg_prompt(negative_prompt_embed_dict, pose) for pose in self.camera_poses] * self.max_hits
 				negative_prompt_embeds = torch.stack(negative_prompt_embeds, axis=0)
 
 
