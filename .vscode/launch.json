@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Run Experiment with Conda",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_experiment.py",
+            "args": [
+                "--config",
+                "data/sneaker/config.yaml"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "python": "/home/fai/miniconda3/envs/smvd/bin/python"
+        }
+    ]
+}
