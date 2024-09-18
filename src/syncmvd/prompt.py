@@ -3,9 +3,12 @@ import torch
 direction_names = ["", "front", "side", "back", "top", "bottom"]
 
 # Append directions to the prompts
-def prepare_directional_prompt(prompt, negative_prompt):
+def prepare_directional_prompt(prompt, negative_prompt, inside=False):
 	directional_prompt = [prompt + f", {v} view." for v in direction_names]
 	negative_prompt = [negative_prompt + f", {v} view." for v in direction_names ]
+
+	if inside:
+		directional_prompt = [f"inside of {p}" for p in directional_prompt]
 	return directional_prompt, negative_prompt
 
 

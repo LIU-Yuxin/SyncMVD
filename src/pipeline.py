@@ -430,8 +430,12 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		guess_mode = controlnet_guess_mode or global_pool_conditions
 
 
+		original_prompt = prompt
+		original_negative_prompt = negative_prompt
 		# 3. Encode input prompt
 		prompt, negative_prompt = prepare_directional_prompt(prompt, negative_prompt)
+
+		inside_prompt, insdide_negative_prompt = prepare_directional_prompt(original_prompt, original_negative_prompt, inside=True)
 
 		text_encoder_lora_scale = (
 			cross_attention_kwargs.get("scale", None) if cross_attention_kwargs is not None else None
@@ -450,6 +454,20 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		negative_prompt_embeds, prompt_embeds = torch.chunk(prompt_embeds, 2)
 		prompt_embed_dict = dict(zip(direction_names, [emb for emb in prompt_embeds]))
 		negative_prompt_embed_dict = dict(zip(direction_names, [emb for emb in negative_prompt_embeds]))
+
+		inside_prompt_embeds = self._encode_prompt(
+			inside_prompt,
+			device,
+			num_images_per_prompt,
+			do_classifier_free_guidance,
+			insdide_negative_prompt,
+			prompt_embeds=None,
+			negative_prompt_embeds=None,
+			lora_scale=text_encoder_lora_scale,
+		)
+		inside_negative_prompt_embeds, inside_prompt_embeds = torch.chunk(inside_prompt_embeds, 2)
+		inside_prompt_embed_dict = dict(zip(direction_names, [emb for emb in inside_prompt_embeds]))
+		inside_negative_prompt_embed_dict = dict(zip(direction_names, [emb for emb in inside_negative_prompt_embeds]))
 
 		# (4. Prepare image) This pipeline use internal conditional images from Pytorch3D
 		self.uvp.to(self._execution_device)
@@ -509,13 +527,23 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 
 				# mix prompt embeds according to azim angle
 				positive_prompt_embeds = [azim_prompt(prompt_embed_dict, pose) for pose in self.camera_poses]
-				# Interleave the prompts to align with the order of occ_cameras
-				positive_prompt_embeds = [item for item in positive_prompt_embeds for _ in range(self.max_hits)]
-				positive_prompt_embeds = torch.stack(positive_prompt_embeds, axis=0)
+				positive_inside_prompt_embeds = [azim_prompt(inside_prompt_embed_dict, pose) for pose in self.camera_poses]
+				# Interleave the prompts to align with the order of cameras
+				interleaved_positive_embeds = []
+				for pos_embed, inside_embed in zip(positive_prompt_embeds, positive_inside_prompt_embeds):
+					interleaved_positive_embeds.append(pos_embed)  # Add the original prompt
+					interleaved_positive_embeds.extend([inside_embed] * (self.max_hits - 1))
+				# positive_prompt_embeds = [item for item in positive_prompt_embeds for _ in range(self.max_hits)]
+				positive_prompt_embeds = torch.stack(interleaved_positive_embeds, axis=0)
 
 				negative_prompt_embeds = [azim_neg_prompt(negative_prompt_embed_dict, pose) for pose in self.camera_poses]
-				negative_prompt_embeds = [item for item in negative_prompt_embeds for _ in range(self.max_hits)]
-				negative_prompt_embeds = torch.stack(negative_prompt_embeds, axis=0)
+				negative_inside_prompt_embeds = [azim_neg_prompt(inside_negative_prompt_embed_dict, pose) for pose in self.camera_poses]
+				interleaved_negative_embeds = []
+				for neg_embed, inside_embed in zip(negative_prompt_embeds, negative_inside_prompt_embeds):
+					interleaved_negative_embeds.append(neg_embed)  # Add the original prompt
+					interleaved_negative_embeds.extend([inside_embed] * (self.max_hits - 1))
+				# negative_prompt_embeds = [item for item in negative_prompt_embeds for _ in range(self.max_hits)]
+				negative_prompt_embeds = torch.stack(interleaved_negative_embeds, axis=0)
 
 
 				# expand the latents if we are doing classifier free guidance
