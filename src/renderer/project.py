@@ -440,7 +440,7 @@ class UVProjection():
 			self.visible_texture_map_list, 
 			[self.mesh.textures.verts_uvs_padded()[0]] * len(self.cameras) * self.max_hits, 
 			sampling_mode=self.sampling_mode
-			)
+		)
 		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras) * self.max_hits, faces = visible_faces_list, textures = textures)
 		self.occ_cameras = FoVOrthographicCameras(device=self.device, R=self.cameras.R.repeat_interleave(self.max_hits, 0), T=self.cameras.T.repeat_interleave(self.max_hits, 0), scale_xyz=self.cameras.scale_xyz.repeat_interleave(self.max_hits, 0))
 

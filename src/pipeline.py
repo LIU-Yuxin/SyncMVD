@@ -130,8 +130,7 @@ def split_groups(attention_mask, max_batch_size, ref_view=[], max_hits = 2):
 				out_mask.append(in_mask.index(idx))
 			group_attention_masks.append([in_mask.index(idxx) for idxx in attention_mask[idx] if idxx in in_mask])
 		ref_attention_mask = [in_mask.index(idx) for idx in ref_view]
-		for _ in range(max_hits):
-			group_metas.append([in_mask, out_mask, group_attention_masks, ref_attention_mask])
+		group_metas.append([in_mask, out_mask, group_attention_masks, ref_attention_mask])
 
 	return group_metas
 
@@ -233,7 +232,19 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		# Reference view for attention (all views attend the the views in this list)
 		# A forward view will be used if not specified
 		if len(ref_views) == 0:
-			ref_views = [front_view_idx]
+			ref_views = [front_view_idx*self.max_hits]
+
+		self.attention_mask = [
+			[element * self.max_hits for element in mask] for mask in self.attention_mask
+		]
+		attention_mask = self.attention_mask.copy()
+
+		for i in range(1, self.max_hits):
+			incremented_masks = [
+				[element + i for element in mask] for mask in attention_mask
+			]
+			self.attention_mask.extend(incremented_masks)
+			
 
 		# Calculate in-group attention mask
 		self.group_metas = split_groups(self.attention_mask, max_batch_size, ref_views, self.max_hits)
@@ -540,7 +551,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 						prompt_embeds_batches = [torch.index_select(controlnet_prompt_embeds, dim=0, index=torch.tensor(meta[0], device=self._execution_device)) for meta in self.group_metas]
 						conditioning_images_batches = [torch.index_select(conditioning_images, dim=0, index=torch.tensor(meta[0], device=self._execution_device)) for meta in self.group_metas]
 
-						for model_input_batch ,prompt_embeds_batch, conditioning_images_batch \
+						for model_input_batch, prompt_embeds_batch, conditioning_images_batch \
 							in zip (model_input_batches, prompt_embeds_batches, conditioning_images_batches):
 							down_block_res_samples, mid_block_res_sample = self.controlnet(
 								model_input_batch,

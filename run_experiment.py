@@ -79,7 +79,7 @@ result_tex_rgb, textured_views, v = syncmvd(
 	negative_prompt=opt.negative_prompt,
 	
 	generator=torch.manual_seed(opt.seed),
-	max_batch_size=48,
+	max_batch_size=64,
 	controlnet_guess_mode=opt.guess_mode,
 	controlnet_conditioning_scale = opt.conditioning_scale,
 	controlnet_conditioning_end_scale= opt.conditioning_scale_end,
