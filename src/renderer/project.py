@@ -623,8 +623,7 @@ class UVProjection():
 			)
 		self.occ_mesh.textures = new_tex
 
-		for i, mesh in enumerate(self.occ_mesh):    
-			
+		for i, mesh in enumerate(self.occ_mesh):
 			images_predicted = self.renderer(mesh, cameras=self.occ_cameras[i], lights=self.lights, device=self.device)
 			predicted_rgb = images_predicted[..., :-1]
 			loss += (((predicted_rgb[...] - views[i]))**2).sum()

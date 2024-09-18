@@ -5,6 +5,8 @@ import random
 import torch
 from torchvision.transforms import Resize, InterpolationMode
 
+from .renderer.project import UVProjection as UVP
+
 
 '''
 	Encoding and decoding functions similar to diffusers library implementation
@@ -55,7 +57,7 @@ def latent_preview(x):
 
 
 # Decode each view and bake them into a rgb texture
-def get_rgb_texture(vae, uvp_rgb, latents):
+def get_rgb_texture(vae, uvp_rgb:UVP, latents):
 	result_views = vae.decode(latents / vae.config.scaling_factor, return_dict=False)[0]
 	resize = Resize((uvp_rgb.render_size,)*2, interpolation=InterpolationMode.NEAREST_EXACT, antialias=True)
 	result_views = resize(result_views / 2 + 0.5).clamp(0, 1).unbind(0)
