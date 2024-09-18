@@ -100,7 +100,7 @@ def composite_rendered_view(scheduler, backgrounds, foregrounds, masks, t):
 # Split into micro-batches to use less memory in each unet prediction
 # But need more investigation on reducing memory usage
 # Assume it has no possitive effect and use a large "max_batch_size" to skip splitting
-def split_groups(attention_mask, max_batch_size, ref_view=[]):
+def split_groups(attention_mask, max_batch_size, ref_view=[], max_hits = 2):
 	group_sets = []
 	group = set()
 	ref_group = set()
@@ -130,7 +130,8 @@ def split_groups(attention_mask, max_batch_size, ref_view=[]):
 				out_mask.append(in_mask.index(idx))
 			group_attention_masks.append([in_mask.index(idxx) for idxx in attention_mask[idx] if idxx in in_mask])
 		ref_attention_mask = [in_mask.index(idx) for idx in ref_view]
-		group_metas.append([in_mask, out_mask, group_attention_masks, ref_attention_mask])
+		for _ in range(max_hits):
+			group_metas.append([in_mask, out_mask, group_attention_masks, ref_attention_mask])
 
 	return group_metas
 
@@ -166,6 +167,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		self.enable_model_cpu_offload()
 		self.enable_vae_slicing()
 		self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)
+		self.max_hits = 2
 
 	
 	def initialize_pipeline(
@@ -182,7 +184,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 			texture_size=None,
 			texture_rgb_size=None,
 
-			max_batch_size=24,
+			max_batch_size=4,
 			logging_config=None,
 		):
 		# Make output dir
@@ -233,12 +235,12 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 			ref_views = [front_view_idx]
 
 		# Calculate in-group attention mask
-		self.group_metas = split_groups(self.attention_mask, max_batch_size, ref_views)
+		self.group_metas = split_groups(self.attention_mask, max_batch_size, ref_views, self.max_hits)
 
 
 		# Set up pytorch3D for projection between screen space and UV space
 		# uvp is for latent and uvp_rgb for rgb color
-		self.uvp = UVP(texture_size=texture_size, render_size=latent_size, sampling_mode="nearest", channels=4, device=self._execution_device)
+		self.uvp = UVP(texture_size=texture_size, render_size=latent_size, sampling_mode="nearest", channels=4, device=self._execution_device, max_hits=self.max_hits)
 		if mesh_path.lower().endswith(".obj"):
 			self.uvp.load_mesh(mesh_path, scale_factor=mesh_transform["scale"] or 1, autouv=mesh_autouv)
 		elif mesh_path.lower().endswith(".glb"):
@@ -248,7 +250,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		self.uvp.set_cameras_and_render_settings(self.camera_poses, centers=camera_centers, camera_distance=4.0)
 
 
-		self.uvp_rgb = UVP(texture_size=texture_rgb_size, render_size=render_rgb_size, sampling_mode="nearest", channels=3, device=self._execution_device)
+		self.uvp_rgb = UVP(texture_size=texture_rgb_size, render_size=render_rgb_size, sampling_mode="nearest", channels=3, device=self._execution_device, max_hits=self.max_hits)
 		self.uvp_rgb.mesh = self.uvp.mesh.clone()
 		self.uvp_rgb.set_cameras_and_render_settings(self.camera_poses, centers=camera_centers, camera_distance=4.0)
 		_,_,_,cos_maps,_, _ = self.uvp_rgb.render_geometry()
@@ -297,7 +299,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		return_dict: bool = False,
 		callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
 		callback_steps: int = 1,
-		max_batch_size=6,
+		max_batch_size=4,
 		
 		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
 		controlnet_guess_mode: bool = False,
@@ -452,7 +454,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		# 6. Prepare latent variables
 		num_channels_latents = self.unet.config.in_channels
 		latents = self.prepare_latents(
-			batch_size,
+			batch_size * self.max_hits,
 			num_channels_latents,
 			height,
 			width,
@@ -487,7 +489,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 		# 8. Denoising loop
 		num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
 		intermediate_results = []
-		background_colors = [random.choice(list(color_constants.keys())) for i in range(len(self.camera_poses))]
+		background_colors = [random.choice(list(color_constants.keys())) for i in range(len(self.camera_poses) * self.max_hits)]
 		dbres_sizes_list = []
 		mbres_size_list = []
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
@@ -617,6 +619,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 
 					result_groups[prompt_tag] = noise_pred
 
+
 				positive_noise_pred = result_groups["positive"]
 
 				# perform guidance
@@ -681,9 +684,9 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 
 				# 2. Shuffle background colors; only black and white used after certain timestep
 				if (1-t/num_timesteps) < shuffle_background_change:
-					background_colors = [random.choice(list(color_constants.keys())) for i in range(len(self.camera_poses))]
+					background_colors = [random.choice(list(color_constants.keys())) for i in range(len(self.camera_poses) * self.max_hits)]
 				elif (1-t/num_timesteps) < shuffle_background_end:
-					background_colors = [random.choice(["black","white"]) for i in range(len(self.camera_poses))]
+					background_colors = [random.choice(["black","white"]) for i in range(len(self.camera_poses) * self.max_hits)]
 				else:
 					background_colors = background_colors
 

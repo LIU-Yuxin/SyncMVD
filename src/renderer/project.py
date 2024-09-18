@@ -141,7 +141,7 @@ def ray_cast_mesh(mesh, rays_origins, ray_directions):
 # Stable Diffusion has 4 latent channels so use channels=4
 
 class UVProjection():
-	def __init__(self, texture_size=96, render_size=64, sampling_mode="nearest", channels=3, device=None):
+	def __init__(self, texture_size=96, render_size=64, sampling_mode="nearest", channels=3, device=None, max_hits = 2):
 		self.channels = channels
 		self.device = device or torch.device("cpu")
 		self.lights = AmbientLights(ambient_color=((1.0,)*channels,), device=self.device)
@@ -149,7 +149,7 @@ class UVProjection():
 		self.render_size = render_size
 		self.sampling_mode = sampling_mode
 
-		self.max_hits = 1
+		self.max_hits = max_hits
 		self.occ_mesh = None
 
 
@@ -346,7 +346,7 @@ class UVProjection():
 			blur_radius=blur, 
 			faces_per_pixel=face_per_pix,
 			perspective_correct=perspective_correct,
-			cull_backfaces=True,
+			cull_backfaces=False,
 			max_faces_per_bin=30000,
 		)
 
@@ -382,7 +382,7 @@ class UVProjection():
 			zero_tex = TexturesUV([zero_map], mesh.textures.faces_uvs_padded(), mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
 			mesh.textures = zero_tex
 
-			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights)
+			images_predicted = self.renderer(mesh, cameras=self.occ_cameras[i], lights=self.lights)
 
 			loss = torch.sum((cos_angles[i,:,:,0:1]**1 - images_predicted)**2)
 			loss.backward()
@@ -439,7 +439,7 @@ class UVProjection():
 			[self.mesh.textures.verts_uvs_padded()[0]] * len(self.cameras) * self.max_hits, 
 			sampling_mode=self.sampling_mode
 			)
-		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras), faces = visible_faces_list, textures = textures)
+		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras) * self.max_hits, faces = visible_faces_list, textures = textures)
 		self.occ_cameras = FoVOrthographicCameras(device=self.device, R=self.cameras.R.repeat_interleave(self.max_hits, 0), T=self.cameras.T.repeat_interleave(self.max_hits, 0), scale_xyz=self.cameras.scale_xyz.repeat_interleave(self.max_hits, 0))
 		# TODO: max_hits = 2
 	# Get geometric info from fragment shader
@@ -456,7 +456,7 @@ class UVProjection():
 		
 		self.generate_occluded_geometry()
 		
-		verts, normals, depths, cos_angles, texels, fragments = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
+		verts, normals, depths, cos_angles, texels, fragments = self.renderer(self.occ_mesh, cameras=self.occ_cameras, lights=self.lights)
 		self.renderer.shader = shader
 
 		if image_size:
@@ -467,13 +467,13 @@ class UVProjection():
 
 	# Project world normal to view space and normalize
 	@torch.no_grad()
-	def decode_view_normal(self, normals):
-		w2v_mat = self.cameras.get_full_projection_transform()
+	def decode_view_normal(self, normals, flip_normals = True):
+		w2v_mat = self.occ_cameras.get_full_projection_transform()
 		normals_view = torch.clone(normals)[:,:,:,0:3]
 		normals_view = normals_view.reshape(normals_view.shape[0], -1, 3)
 		normals_view = w2v_mat.transform_normals(normals_view)
 		normals_view = normals_view.reshape(normals.shape[0:3]+(3,))
-		normals_view[:,:,:,2] *= -1
+		normals_view[:,:,:,2] = torch.where(normals_view[:,:,:,2] > 0, normals_view[:,:,:,2], - normals_view[:,:,:,2])
 		normals = (normals_view[...,0:3]+1) * normals[...,3:] / 2 + torch.FloatTensor(((((0.5,0.5,1))))).to(self.device) * (1 - normals[...,3:])
 		# normals = torch.cat([normal for normal in normals], dim=1)
 		normals = normals.clamp(0, 1)
@@ -518,7 +518,7 @@ class UVProjection():
 			optimizer.zero_grad()
 			zero_tex = TexturesUV([zero_map], mesh.textures.faces_uvs_padded(), mesh.textures.verts_uvs_padded(), sampling_mode=self.sampling_mode)
 			mesh.textures = zero_tex
-			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights)
+			images_predicted = self.renderer(mesh, cameras=self.occ_cameras[i], lights=self.lights)
 			loss = torch.sum((1 - images_predicted)**2)
 			loss.backward()
 			optimizer.step()
@@ -537,9 +537,9 @@ class UVProjection():
 			channels = self.channels
 
 		pix2face_list = []
-		for i in range(len(self.cameras)):
+		for i in range(len(self.occ_cameras)):
 			self.renderer.rasterizer.raster_settings.image_size=image_size
-			pix2face = self.renderer.rasterizer(self.mesh_d, cameras=self.cameras[i]).pix_to_face
+			pix2face = self.renderer.rasterizer(self.occ_mesh[i], cameras=self.occ_cameras[i]).pix_to_face
 			self.renderer.rasterizer.raster_settings.image_size=self.render_size
 			pix2face_list.append(pix2face)
 
@@ -585,7 +585,7 @@ class UVProjection():
 
 	# Render the current mesh and texture from current cameras
 	def render_textured_views(self):
-		images_predicted = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
+		images_predicted = self.renderer(self.occ_mesh, cameras=self.occ_cameras, lights=self.lights)
 
 		return [image.permute(2, 0, 1) for image in images_predicted]
 
@@ -616,7 +616,7 @@ class UVProjection():
 
 		for i, mesh in enumerate(self.occ_mesh):    
 			
-			images_predicted = self.renderer(mesh, cameras=self.cameras[i], lights=self.lights, device=self.device)
+			images_predicted = self.renderer(mesh, cameras=self.occ_cameras[i], lights=self.lights, device=self.device)
 			predicted_rgb = images_predicted[..., :-1]
 			loss += (((predicted_rgb[...] - views[i]))**2).sum()
 		loss.backward(retain_graph=False)
@@ -645,7 +645,7 @@ class UVProjection():
 			)
 		self.occ_mesh.textures = new_tex
 
-		images_predicted = self.renderer(self.occ_mesh, cameras=self.cameras, lights=self.lights)
+		images_predicted = self.renderer(self.occ_mesh, cameras=self.occ_cameras, lights=self.lights)
 		learned_views = [image.permute(2, 0, 1) for image in images_predicted]
 
 		return learned_views, baked.permute(2, 0, 1), total_weights.permute(2, 0, 1)
