@@ -508,10 +508,13 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 			for i, t in enumerate(timesteps):
 
 				# mix prompt embeds according to azim angle
-				positive_prompt_embeds = [azim_prompt(prompt_embed_dict, pose) for pose in self.camera_poses] * self.max_hits
+				positive_prompt_embeds = [azim_prompt(prompt_embed_dict, pose) for pose in self.camera_poses]
+				# Interleave the prompts to align with the order of occ_cameras
+				positive_prompt_embeds = [item for item in positive_prompt_embeds for _ in range(self.max_hits)]
 				positive_prompt_embeds = torch.stack(positive_prompt_embeds, axis=0)
 
-				negative_prompt_embeds = [azim_neg_prompt(negative_prompt_embed_dict, pose) for pose in self.camera_poses] * self.max_hits
+				negative_prompt_embeds = [azim_neg_prompt(negative_prompt_embed_dict, pose) for pose in self.camera_poses]
+				negative_prompt_embeds = [item for item in negative_prompt_embeds for _ in range(self.max_hits)]
 				negative_prompt_embeds = torch.stack(negative_prompt_embeds, axis=0)
 
 
