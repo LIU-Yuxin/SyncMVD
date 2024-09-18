@@ -58,6 +58,7 @@ def get_cos_angle(
 	view_direction = camera_position - points
 	view_direction = F.normalize(view_direction, p=2, dim=-1, eps=1e-6)
 	cos_angle = torch.sum(view_direction * normals, dim=-1, keepdim=True)
+	cos_angle = torch.abs(cos_angle)
 	cos_angle = cos_angle.clamp(0, 1)
 
 	# Cosine of the angle between the reflected light ray and the viewer
