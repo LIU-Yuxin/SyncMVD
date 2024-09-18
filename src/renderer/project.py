@@ -407,6 +407,7 @@ class UVProjection():
 
 		visible_faces_list = []
 		self.visible_texture_map_list = []
+		self.mesh_face_indices_list = []
 		
 		for k, camera in enumerate(self.cameras):
 			R = camera.R.cpu().numpy()
@@ -426,13 +427,14 @@ class UVProjection():
 			for i in range(self.max_hits):
 				# mesh_face_indexes = np.hstack([mesh_face_indices[i], np.array([mesh_face_indices[i][-1] for _ in range(faces.shape[0] - mesh_face_indices[i].shape[0])])])
 				visible_faces = faces[mesh_face_indices[i]]  # Only keep the visible faces
+				self.mesh_face_indices_list.append(torch.tensor(mesh_face_indices[i], dtype=torch.int64, device='cuda'))
 				# Trimesh(vertices=vertices, faces=visible_faces).export(str(k)+"trans"+str(i)+".ply")
 				visible_faces = torch.tensor(visible_faces, dtype=torch.int64, device='cuda')
 
 				visible_faces_list.append(visible_faces)
 				new_map = torch.zeros(self.target_size+(self.channels,), device=self.device)
 				self.visible_texture_map_list.append(self.mesh.textures.faces_uvs_padded()[0, mesh_face_indices[i]])
-
+		
 		textures = TexturesUV(
 			[new_map] * len(self.cameras) * self.max_hits, 
 			self.visible_texture_map_list, 
@@ -441,7 +443,7 @@ class UVProjection():
 			)
 		self.occ_mesh = Meshes(verts = [self.mesh.verts_packed()] * len(self.cameras) * self.max_hits, faces = visible_faces_list, textures = textures)
 		self.occ_cameras = FoVOrthographicCameras(device=self.device, R=self.cameras.R.repeat_interleave(self.max_hits, 0), T=self.cameras.T.repeat_interleave(self.max_hits, 0), scale_xyz=self.cameras.scale_xyz.repeat_interleave(self.max_hits, 0))
-		# TODO: max_hits = 2
+
 	# Get geometric info from fragment shader
 	# Can be used for generating conditioning image and cosine weights
 	# Returns some information you may not need, remember to release them for memory saving
@@ -532,7 +534,6 @@ class UVProjection():
 	# First get face ids from each view, then filter pixels on UV space to generate masks
 	@torch.no_grad()
 	def calculate_visible_triangle_mask(self, channels=None, image_size=(512,512)):
-		# TODO: update visible triagle mask
 		if not channels:
 			channels = self.channels
 
@@ -540,6 +541,14 @@ class UVProjection():
 		for i in range(len(self.occ_cameras)):
 			self.renderer.rasterizer.raster_settings.image_size=image_size
 			pix2face = self.renderer.rasterizer(self.occ_mesh[i], cameras=self.occ_cameras[i]).pix_to_face
+			
+			indices = pix2face[:,:,:,0].long().squeeze()
+			valid_mask = (indices != -1)
+			output_faces = torch.full_like(indices, -1)
+			valid_indices = indices[valid_mask]
+			output_faces[valid_mask] = self.mesh_face_indices_list[i][valid_indices]
+			pix2face = torch.where(pix2face[:, :, :, 0] == -1, -1, output_faces)
+
 			self.renderer.rasterizer.raster_settings.image_size=self.render_size
 			pix2face_list.append(pix2face)
 
