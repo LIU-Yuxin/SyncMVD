@@ -266,7 +266,7 @@ class StableSyncMVDPipeline(StableDiffusionControlNetPipeline):
 			device=self._execution_device, 
 			dtype=self.text_encoder.dtype
 		) * color_images
-		color_images *= ((0.5*color_images)+0.5)
+		color_images = ((0.5*color_images)+0.5)
 		color_latents = encode_latents(self.vae, color_images)
 
 		self.color_latents = {color[0]:color[1] for color in zip(color_names, [latent for latent in color_latents])}
