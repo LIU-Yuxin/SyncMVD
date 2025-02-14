@@ -60,8 +60,8 @@ elif opt.cond_type == "depth":
 	controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11f1p_sd15_depth", variant="fp16", torch_dtype=torch.float16)			
 
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
-	"runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16
-)
+	"benjamin-paine/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16
+) # originally runwayml/stable-diffusion-v1-5
 
 
 pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
